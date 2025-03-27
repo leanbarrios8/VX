@@ -1,0 +1,126 @@
+USE VX;
+SET @@autocommit = 1;
+
+--
+-- SUMADORA DE VENTAS POR ID DE CLIENTE
+--
+
+DROP FUNCTION IF EXISTS FN_TOTAL_VENTAS_POR_CONTACTO;
+
+DELIMITER //
+CREATE FUNCTION FN_TOTAL_VENTAS_POR_CONTACTO (
+    p_id_contacto_v INT
+)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE total INT DEFAULT 0;
+
+    SELECT SUM(monto_venta)
+    INTO total
+    FROM VENTA
+    WHERE id_contacto_v = p_id_contacto_v;
+
+    RETURN total;
+END //
+DELIMITER ;
+
+--
+-- CALCULADORA DE GANANCIA POR VENTA
+--
+
+DROP FUNCTION IF EXISTS FN_OBTENER_ID_PRODUCTO;
+DROP FUNCTION IF EXISTS FN_CALCULADORA_GANANCIA_VENTA;
+
+DELIMITER //
+CREATE FUNCTION  FN_OBTENER_ID_PRODUCTO (
+	p_id_venta_producto INT
+)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE id_producto_vendido INT DEFAULT 0;
+    
+    SELECT id_producto INTO id_producto_vendido
+    FROM VENTA
+    WHERE id_venta = p_id_venta_producto;
+    
+    RETURN ID_PRODUCTO_VENDIDO;
+END //
+
+CREATE FUNCTION FN_CALCULADORA_GANANCIA_VENTA(
+	P_ID_VENTA INT
+)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+	DECLARE ganancia INT DEFAULT 0;
+    DECLARE id_producto INT DEFAULT 0;
+    
+    SET id_producto = FN_OBTENER_ID_PRODUCTO(p_id_venta);
+    
+	SELECT (VENTA - COSTO) INTO ganancia
+    FROM PRECIO
+	WHERE id_stock_precio = id_producto;
+    
+    RETURN ganancia;
+    
+END //
+DELIMITER ;
+
+
+--
+-- VERIFICAR DISPONIBILIDAD DE STOCK
+--
+
+
+DROP FUNCTION IF EXISTS FN_OBTENER_STOCK;
+
+DELIMITER //
+CREATE FUNCTION FN_OBTENER_STOCK(
+	id_producto INT, 
+    disponibilidad INT
+) 
+RETURNS VARCHAR(400)
+DETERMINISTIC
+BEGIN
+    DECLARE stock_actual INT;
+    DECLARE comentario VARCHAR(400);
+
+    SELECT stock_c INTO stock_actual FROM STOCK WHERE id_stock = id_producto;
+
+    IF stock_actual >= disponibilidad THEN
+        SET comentario = 'stock disponible';
+    ELSE
+        SET comentario = 'stock insuficiente';
+    END IF;
+    RETURN CONCAT('El stock actual es: ',stock_actual, '. ' ,'Por lo tanto tenemos ', comentario);
+END //
+DELIMITER ;
+
+
+--
+-- TESTEO DE FUNCIONES
+--
+
+
+-- FUNCTION FN_TOTAL_VENTAS_POR_CONTACTO
+
+
+SELECT FN_TOTAL_VENTAS_POR_CONTACTO(1);
+SELECT FN_TOTAL_VENTAS_POR_CONTACTO(3);
+SELECT FN_TOTAL_VENTAS_POR_CONTACTO(5);
+
+
+-- FUNCTION FN_OBTENER_ID_PRODUCTO
+
+
+SELECT FN_CALCULADORA_GANANCIA_VENTA(1);
+SELECT FN_CALCULADORA_GANANCIA_VENTA(2);
+SELECT FN_CALCULADORA_GANANCIA_VENTA(3);
+
+-- FUNCION FN_OBTENER_STOCK
+
+SELECT * FROM STOCK;
+SELECT FN_OBTENER_STOCK(2,50);
+
